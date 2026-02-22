@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Workout</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: #16213e;
+    border-bottom: 1px solid #0f3460;
+    padding: 12px 16px;
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; }
+  .day-title { font-size: 20px; font-weight: 700; color: #e94560; }
+  .progress { font-size: 14px; color: #8899aa; }
+  .progress-bar {
+    height: 3px; background: #0f3460; border-radius: 2px; margin-top: 8px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: #e94560; border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 0; margin-top: 10px;
+  }
+  .tab {
+    flex: 1; padding: 10px 0; text-align: center;
+    background: none; border: none; color: #667;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active { color: #e94560; border-bottom-color: #e94560; }
+
+  /* Content */
+  .content { padding: 12px 12px 120px; }
+
+  /* MVP reminder */
+  .mvp {
+    background: #0f3460; border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 16px; border-left: 3px solid #e94560;
+    font-size: 13px; line-height: 1.5; color: #aab;
+  }
+  .mvp strong { color: #e94560; }
+
+  /* Exercise card */
+  .card {
+    background: #16213e; border-radius: 12px;
+    margin-bottom: 12px; overflow: hidden;
+    border: 1px solid #0f3460;
+    transition: border-color 0.2s, opacity 0.3s;
+  }
+  .card.done { opacity: 0.5; border-color: #2a5a3a; }
+  .card.done .card-header { background: #1a3a2a; }
+
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer;
+    min-height: 64px;
+  }
+  .card-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #0f3460; color: #e94560;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+  }
+  .card.done .card-num { background: #2a5a3a; color: #6fca6f; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-size: 16px; font-weight: 600; color: #fff; }
+  .card-meta { font-size: 13px; color: #889; margin-top: 2px; }
+  .card-check {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid #334; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent; font-size: 18px; flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .card.done .card-check { border-color: #6fca6f; color: #6fca6f; background: #1a3a2a; }
+
+  /* Card detail */
+  .card-detail {
+    display: none; padding: 0 16px 14px;
+  }
+  .card.expanded .card-detail { display: block; }
+
+  .exercise-icon {
+    width: 48px; height: 48px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 10px;
+  }
+
+  .detail-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .tag {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px;
+    background: #0f3460; color: #8ab;
+  }
+
+  .note {
+    font-size: 13px; color: #9ab; line-height: 1.5;
+    margin-top: 8px; padding: 10px 12px;
+    background: #0d1b36; border-radius: 8px;
+  }
+
+  .wrist-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #3a1a1a; color: #e94560; border: none;
+    padding: 6px 12px; border-radius: 6px; font-size: 12px;
+    cursor: pointer; margin-top: 8px;
+  }
+  .wrist-note {
+    display: none; font-size: 13px; color: #f0a0a0; line-height: 1.5;
+    margin-top: 8px; padding: 10px 12px;
+    background: #2a1a1a; border-radius: 8px;
+    border-left: 2px solid #e94560;
+  }
+  .wrist-note.visible { display: block; }
+
+  /* Timer */
+  .timer-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #16213e; border-top: 1px solid #0f3460;
+    padding: 16px; z-index: 100;
+    display: flex; align-items: center; gap: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .timer-display {
+    font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: #fff; min-width: 80px; text-align: center;
+  }
+  .timer-display.resting { color: #e94560; }
+  .timer-btns { display: flex; gap: 8px; flex: 1; }
+  .timer-btn {
+    flex: 1; padding: 14px 0; border-radius: 10px;
+    border: none; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .timer-btn.primary { background: #e94560; color: #fff; }
+  .timer-btn.secondary { background: #0f3460; color: #aab; }
+
+  /* Reset button */
+  .reset-wrap { text-align: center; margin-top: 24px; }
+  .reset-btn {
+    background: none; border: 1px solid #334;
+    color: #667; padding: 10px 24px; border-radius: 8px;
+    font-size: 13px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="day-title" id="dayTitle">Day A</div>
+    <div class="progress" id="progressText">0/6 done</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="tabs">
+    <button class="tab active" data-day="A">A: Lower</button>
+    <button class="tab" data-day="B">B: Upper</button>
+    <button class="tab" data-day="C">C: Full Body</button>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="timer-bar">
+  <div class="timer-display" id="timerDisplay">0:00</div>
+  <div class="timer-btns">
+    <button class="timer-btn secondary" onclick="startTimer(60)">1:00</button>
+    <button class="timer-btn primary" onclick="startTimer(90)">1:30</button>
+    <button class="timer-btn secondary" onclick="startTimer(120)">2:00</button>
+    <button class="timer-btn secondary" onclick="stopTimer()" id="timerStopBtn" style="display:none">Stop</button>
+  </div>
+</div>
+
+<script>
+// ── Workout Data ──
+const DAYS = {
+  A: {
+    title: "Day A: Lower Body + Stairs",
+    subtitle: "Bone Density Focus",
+    exercises: [
+      {
+        name: "StairMaster Warmup",
+        sets: null, reps: null, duration: "5 min",
+        equipment: "StairMaster", muscles: ["Warmup"],
+        note: "Moderate pace. Skip or shorten to 2-3 min if it feels like a barrier.",
+        wrist: null, icon: "🪜"
+      },
+      {
+        name: "Goblet Squat",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Kettlebell", muscles: ["Quads", "Glutes"],
+        note: "Primary bone density exercise. Load the femoral neck.",
+        wrist: "Hold bell at chest, cradle it — no wrist grip needed.",
+        icon: "🏋️"
+      },
+      {
+        name: "Romanian Deadlift",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Dumbbells", muscles: ["Hamstrings", "Glutes"],
+        note: "Keep slight bend in knees, hinge at hips.",
+        wrist: "Use wrist straps, or switch to kettlebell version holding by the horn.",
+        icon: "🦵"
+      },
+      {
+        name: "Cable Pull-Through",
+        sets: 3, reps: 12, duration: null,
+        equipment: "Cable machine", muscles: ["Glutes", "Hamstrings"],
+        note: "Great for glutes/hamstrings.",
+        wrist: "Easy on wrists — no modification needed.",
+        icon: "🔗"
+      },
+      {
+        name: "Walking Lunges",
+        sets: 3, reps: "8/leg", duration: null,
+        equipment: "Bodyweight / Kettlebell", muscles: ["Quads", "Glutes"],
+        note: "Loaded lunges = direct bone density stimulus at the hip.",
+        wrist: "Use goblet hold with kettlebell.",
+        icon: "🚶"
+      },
+      {
+        name: "StairMaster Finisher",
+        sets: null, reps: null, duration: "10 min",
+        equipment: "StairMaster", muscles: ["Cardio"],
+        note: "Push the pace a bit. Build that backpacking engine.",
+        wrist: null, icon: "🪜"
+      }
+    ]
+  },
+  B: {
+    title: "Day B: Upper Body + Cardio",
+    subtitle: "Strength & Posture",
+    exercises: [
+      {
+        name: "Treadmill Warmup",
+        sets: null, reps: null, duration: "5 min",
+        equipment: "Treadmill", muscles: ["Warmup"],
+        note: "Brisk walk with incline. Skip if you prefer warming up with first exercise at 50% weight.",
+        wrist: null, icon: "🏃"
+      },
+      {
+        name: "Cable Chest Press",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Cable machine", muscles: ["Chest", "Triceps"],
+        note: null,
+        wrist: "Wrist-friendly — use neutral grip handle.",
+        icon: "💪"
+      },
+      {
+        name: "Cable Row",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Cable machine", muscles: ["Back", "Biceps"],
+        note: "Core of back strength for backpacking. Seated or standing.",
+        wrist: null, icon: "🔗"
+      },
+      {
+        name: "Dumbbell Shoulder Press",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Dumbbells", muscles: ["Shoulders"],
+        note: null,
+        wrist: "Do cable lateral raises instead if pressing hurts.",
+        icon: "🙌"
+      },
+      {
+        name: "Cable Face Pull",
+        sets: 3, reps: 12, duration: null,
+        equipment: "Cable machine", muscles: ["Rear Delts", "Upper Back"],
+        note: "Posture + shoulder health.",
+        wrist: null, icon: "🔗"
+      },
+      {
+        name: "Farmer Carry",
+        sets: 3, reps: null, duration: "30-40 sec",
+        equipment: "Kettlebell", muscles: ["Grip", "Core", "Traps"],
+        note: null,
+        wrist: "Carry in LEFT hand only if right wrist is bad, or use straps.",
+        icon: "🧳"
+      },
+      {
+        name: "Treadmill / Elliptical",
+        sets: null, reps: null, duration: "10 min",
+        equipment: "Treadmill or Elliptical", muscles: ["Cardio"],
+        note: "Steady state. Push incline on treadmill for backpacking prep.",
+        wrist: null, icon: "🏃"
+      }
+    ]
+  },
+  C: {
+    title: "Day C: Full Body + Conditioning",
+    subtitle: "Backpacking Prep",
+    exercises: [
+      {
+        name: "StairMaster Warmup",
+        sets: null, reps: null, duration: "5 min",
+        equipment: "StairMaster", muscles: ["Warmup"],
+        note: "Skip or shorten if preferred.",
+        wrist: null, icon: "🪜"
+      },
+      {
+        name: "Goblet Squat",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Kettlebell", muscles: ["Quads", "Glutes"],
+        note: null,
+        wrist: "Cradle hold — wrist-friendly.",
+        icon: "🏋️"
+      },
+      {
+        name: "Cable Lat Pulldown",
+        sets: 3, reps: 10, duration: null,
+        equipment: "Cable machine", muscles: ["Lats", "Back"],
+        note: "Or straight-arm pulldown variation.",
+        wrist: null, icon: "🔗"
+      },
+      {
+        name: "Step-Ups on Bench",
+        sets: 3, reps: "8/leg", duration: null,
+        equipment: "Dumbbells + Bench", muscles: ["Quads", "Glutes"],
+        note: "Hip loading + functional for hiking. Drive through heel.",
+        wrist: null, icon: "⬆️"
+      },
+      {
+        name: "Cable Pallof Press",
+        sets: 3, reps: "10/side", duration: null,
+        equipment: "Cable machine", muscles: ["Core"],
+        note: "Core stability. Anti-rotation.",
+        wrist: "Zero wrist stress.",
+        icon: "🎯"
+      },
+      {
+        name: "StairMaster Sustained",
+        sets: null, reps: null, duration: "15 min",
+        equipment: "StairMaster", muscles: ["Cardio"],
+        note: "This is your backpacking engine. Longest cardio block of the week.",
+        wrist: null, icon: "🪜"
+      }
+    ]
+  }
+};
+
+// ── State ──
+let currentDay = 'A';
+let completed = { A: {}, B: {}, C: {} };
+
+// Load saved state
+try {
+  const saved = JSON.parse(localStorage.getItem('workout-completed'));
+  if (saved) completed = saved;
+} catch(e) {}
+
+function saveState() {
+  localStorage.setItem('workout-completed', JSON.stringify(completed));
+}
+
+// ── Rendering ──
+function render() {
+  const day = DAYS[currentDay];
+  const exercises = day.exercises;
+  const doneCount = Object.keys(completed[currentDay]).length;
+  const total = exercises.length;
+
+  document.getElementById('dayTitle').textContent = day.title;
+  document.getElementById('progressText').textContent = `${doneCount}/${total} done`;
+  document.getElementById('progressFill').style.width = `${(doneCount / total) * 100}%`;
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.day === currentDay);
+  });
+
+  let html = '';
+
+  // MVP reminder
+  html += `<div class="mvp">
+    <strong>Low motivation day?</strong> Walk to the gym, do 20 min on the StairMaster, leave.
+    Showing up is the workout. You can always leave after warmup — but you almost never will.
+  </div>`;
+
+  exercises.forEach((ex, i) => {
+    const isDone = completed[currentDay][i];
+    const doneClass = isDone ? 'done' : '';
+    const meta = [];
+    if (ex.sets && ex.reps) meta.push(`${ex.sets}×${ex.reps}`);
+    else if (ex.duration) meta.push(ex.duration);
+    meta.push(ex.equipment);
+
+    html += `<div class="card ${doneClass}" data-idx="${i}">
+      <div class="card-header" onclick="toggleExpand(this.parentElement)">
+        <div class="card-num">${i + 1}</div>
+        <div class="card-info">
+          <div class="card-name">${ex.name}</div>
+          <div class="card-meta">${meta.join(' · ')}</div>
+        </div>
+        <button class="card-check" onclick="event.stopPropagation(); toggleDone(${i})">✓</button>
+      </div>
+      <div class="card-detail">
+        <div class="detail-row">
+          ${ex.muscles.map(m => `<span class="tag">${m}</span>`).join('')}
+          ${ex.sets ? `<span class="tag">${ex.sets} sets × ${ex.reps} reps</span>` : ''}
+          ${ex.duration ? `<span class="tag">${ex.duration}</span>` : ''}
+        </div>
+        ${ex.note ? `<div class="note">${ex.note}</div>` : ''}
+        ${ex.wrist ? `
+          <button class="wrist-toggle" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('visible')">
+            🦴 Wrist Mod
+          </button>
+          <div class="wrist-note">${ex.wrist}</div>
+        ` : ''}
+      </div>
+    </div>`;
+  });
+
+  // Reset button
+  html += `<div class="reset-wrap">
+    <button class="reset-btn" onclick="resetDay()">Reset Day ${currentDay}</button>
+  </div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function toggleExpand(card) {
+  card.classList.toggle('expanded');
+}
+
+function toggleDone(idx) {
+  if (completed[currentDay][idx]) {
+    delete completed[currentDay][idx];
+  } else {
+    completed[currentDay][idx] = true;
+  }
+  saveState();
+  render();
+}
+
+function resetDay() {
+  completed[currentDay] = {};
+  saveState();
+  render();
+}
+
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    currentDay = tab.dataset.day;
+    render();
+    window.scrollTo(0, 0);
+  });
+});
+
+// ── Timer ──
+let timerInterval = null;
+let timerSeconds = 0;
+
+function startTimer(seconds) {
+  stopTimer();
+  timerSeconds = seconds;
+  updateTimerDisplay();
+  document.getElementById('timerDisplay').classList.add('resting');
+  document.getElementById('timerStopBtn').style.display = '';
+
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      stopTimer();
+      try { navigator.vibrate(300); } catch(e) {}
+      document.getElementById('timerDisplay').textContent = "GO!";
+      setTimeout(() => updateTimerDisplay(), 2000);
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  timerSeconds = 0;
+  document.getElementById('timerDisplay').classList.remove('resting');
+  document.getElementById('timerStopBtn').style.display = 'none';
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+
+// ── Swipe support ──
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', e => {
+  const diff = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(diff) < 80) return;
+  const days = ['A', 'B', 'C'];
+  const idx = days.indexOf(currentDay);
+  if (diff < 0 && idx < 2) { currentDay = days[idx + 1]; render(); }
+  else if (diff > 0 && idx > 0) { currentDay = days[idx - 1]; render(); }
+});
+
+// ── Init ──
+render();
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
