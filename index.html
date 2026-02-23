@@ -134,6 +134,16 @@
   }
   .wrist-note.visible { display: block; }
 
+  /* Video link */
+  .video-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #1a1a3a; color: #7a9ec7; border: 1px solid #2a3a5a;
+    padding: 8px 14px; border-radius: 8px; font-size: 13px;
+    cursor: pointer; margin-top: 8px; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .video-link:active { background: #2a2a4a; }
+
   /* Timer */
   .timer-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -183,7 +193,10 @@
 <div class="content" id="content"></div>
 
 <div class="timer-bar">
-  <div class="timer-display" id="timerDisplay">0:00</div>
+  <div style="text-align:center">
+    <div class="timer-display" id="timerDisplay">0:00</div>
+    <div style="font-size:11px;color:#556;margin-top:2px">⏱ Rest Timer</div>
+  </div>
   <div class="timer-btns">
     <button class="timer-btn secondary" onclick="startTimer(60)">1:00</button>
     <button class="timer-btn primary" onclick="startTimer(90)">1:30</button>
@@ -212,7 +225,7 @@ const DAYS = {
         equipment: "Kettlebell", muscles: ["Quads", "Glutes"],
         note: "Primary bone density exercise. Load the femoral neck.",
         wrist: "Hold bell at chest, cradle it — no wrist grip needed.",
-        icon: "🏋️"
+        icon: "🏋️", videoSearch: "kettlebell goblet squat form technique"
       },
       {
         name: "Romanian Deadlift",
@@ -220,7 +233,7 @@ const DAYS = {
         equipment: "Dumbbells", muscles: ["Hamstrings", "Glutes"],
         note: "Keep slight bend in knees, hinge at hips.",
         wrist: "Use wrist straps, or switch to kettlebell version holding by the horn.",
-        icon: "🦵"
+        icon: "🦵", videoSearch: "dumbbell romanian deadlift RDL form"
       },
       {
         name: "Cable Pull-Through",
@@ -228,7 +241,7 @@ const DAYS = {
         equipment: "Cable machine", muscles: ["Glutes", "Hamstrings"],
         note: "Great for glutes/hamstrings.",
         wrist: "Easy on wrists — no modification needed.",
-        icon: "🔗"
+        icon: "🔗", videoSearch: "cable pull through exercise form"
       },
       {
         name: "Walking Lunges",
@@ -236,7 +249,7 @@ const DAYS = {
         equipment: "Bodyweight / Kettlebell", muscles: ["Quads", "Glutes"],
         note: "Loaded lunges = direct bone density stimulus at the hip.",
         wrist: "Use goblet hold with kettlebell.",
-        icon: "🚶"
+        icon: "🚶", videoSearch: "walking lunges proper form technique"
       },
       {
         name: "StairMaster Finisher",
@@ -264,14 +277,14 @@ const DAYS = {
         equipment: "Cable machine", muscles: ["Chest", "Triceps"],
         note: null,
         wrist: "Wrist-friendly — use neutral grip handle.",
-        icon: "💪"
+        icon: "💪", videoSearch: "cable chest press form technique"
       },
       {
         name: "Cable Row",
         sets: 3, reps: 10, duration: null,
         equipment: "Cable machine", muscles: ["Back", "Biceps"],
         note: "Core of back strength for backpacking. Seated or standing.",
-        wrist: null, icon: "🔗"
+        wrist: null, icon: "🔗", videoSearch: "seated cable row form technique"
       },
       {
         name: "Dumbbell Shoulder Press",
@@ -279,14 +292,14 @@ const DAYS = {
         equipment: "Dumbbells", muscles: ["Shoulders"],
         note: null,
         wrist: "Do cable lateral raises instead if pressing hurts.",
-        icon: "🙌"
+        icon: "🙌", videoSearch: "dumbbell shoulder press form technique"
       },
       {
         name: "Cable Face Pull",
         sets: 3, reps: 12, duration: null,
         equipment: "Cable machine", muscles: ["Rear Delts", "Upper Back"],
         note: "Posture + shoulder health.",
-        wrist: null, icon: "🔗"
+        wrist: null, icon: "🔗", videoSearch: "cable face pull form technique"
       },
       {
         name: "Farmer Carry",
@@ -294,7 +307,7 @@ const DAYS = {
         equipment: "Kettlebell", muscles: ["Grip", "Core", "Traps"],
         note: null,
         wrist: "Carry in LEFT hand only if right wrist is bad, or use straps.",
-        icon: "🧳"
+        icon: "🧳", videoSearch: "kettlebell farmer carry walk form"
       },
       {
         name: "Treadmill / Elliptical",
@@ -322,21 +335,21 @@ const DAYS = {
         equipment: "Kettlebell", muscles: ["Quads", "Glutes"],
         note: null,
         wrist: "Cradle hold — wrist-friendly.",
-        icon: "🏋️"
+        icon: "🏋️", videoSearch: "kettlebell goblet squat form technique"
       },
       {
         name: "Cable Lat Pulldown",
         sets: 3, reps: 10, duration: null,
         equipment: "Cable machine", muscles: ["Lats", "Back"],
         note: "Or straight-arm pulldown variation.",
-        wrist: null, icon: "🔗"
+        wrist: null, icon: "🔗", videoSearch: "cable lat pulldown form technique"
       },
       {
         name: "Step-Ups on Bench",
         sets: 3, reps: "8/leg", duration: null,
         equipment: "Dumbbells + Bench", muscles: ["Quads", "Glutes"],
         note: "Hip loading + functional for hiking. Drive through heel.",
-        wrist: null, icon: "⬆️"
+        wrist: null, icon: "⬆️", videoSearch: "dumbbell step ups bench form"
       },
       {
         name: "Cable Pallof Press",
@@ -344,7 +357,7 @@ const DAYS = {
         equipment: "Cable machine", muscles: ["Core"],
         note: "Core stability. Anti-rotation.",
         wrist: "Zero wrist stress.",
-        icon: "🎯"
+        icon: "🎯", videoSearch: "cable pallof press form technique"
       },
       {
         name: "StairMaster Sustained",
@@ -418,6 +431,11 @@ function render() {
           ${ex.duration ? `<span class="tag">${ex.duration}</span>` : ''}
         </div>
         ${ex.note ? `<div class="note">${ex.note}</div>` : ''}
+        ${ex.videoSearch ? `
+          <a class="video-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.videoSearch)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            ▶ Watch Form Video
+          </a>
+        ` : ''}
         ${ex.wrist ? `
           <button class="wrist-toggle" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('visible')">
             🦴 Wrist Mod
